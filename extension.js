@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const fs = require('fs');
+const cp = require('child_process');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -13,10 +14,86 @@ class PrologTestController {
     constructor() {
         this.controller = vscode.tests.createTestController('prologTestController', 'Prolog Test Controller');
         this.controller.resolveHandler = this.resolveTests.bind(this);
-        this.controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, async (request, token) => {
-            // TODO: Implement test execution here
+        this.controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, async (request) => {
+            const run = this.controller.createTestRun(request);
+            for (const test of request.include) {
+                if (test.id.startsWith('suite:')) {
+                    // If the test item is a suite, run each test in the suite
+                    for (const [id, testItem] of test.children) {
+                        await this.runSingleTest(run, testItem, test.label);
+                    }
+                } else if (test.id.startsWith('test:')) {
+                    await this.runSingleTest(run, test, test.parent.description);
+                }
+            }
+            run.end();
         }, true);
+
+        // Listen for changes to files in the workspace
+        vscode.workspace.onDidChangeTextDocument(async (e) => {
+            if (e.document.languageId === 'prolog') {
+                // If a Prolog file has changed, delete and recreate its test items
+                for (const [id, item] of this.controller.items) {
+                    if (item.uri.toString() === e.document.uri.toString()) {
+                        this.controller.items.delete(id);
+                    }
+                }
+                await this.resolveTestsInFile(e.document.uri);
+            }
+        });
     }
+
+
+    async runSingleTest(run, test, suiteName) {
+        // If the test item is a single test, run it
+        run.started(test);
+        try {
+            const result = this.runTest(test, suiteName);
+            const testResult = this.checkTestResult(result);
+            if (testResult.passed) {
+                run.passed(test);
+            } else {
+                const testMessage = new vscode.TestMessage(testResult.message);
+                run.failed(test, testMessage);
+            }
+        } catch (err) {
+            const testMessage = new vscode.TestMessage(err.message);
+            run.failed(test, testMessage);
+        }
+    }
+
+    /**
+     * Runs a test using SWI-Prolog.
+     * @param {object} test - The test object.
+     * @param {string} suiteName - The name of the test suite.
+     * @returns {string} - The result of the test execution.
+     * @throws {Error} - If an error occurs during the test execution.
+     */
+    runTest(test, suiteName) {
+        try {
+            const result = cp.execSync(`swipl -s ${test.uri.fsPath} -g "run_tests(${suiteName}:${test.label}),halt"`, { encoding: 'utf8' });
+            return result;
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    /**
+     * Checks the result of a test and returns an object indicating whether the test passed or failed.
+     * @param {string} result - The result of the test.
+     * @returns {Object} - An object with the following properties:
+     *   - passed: A boolean indicating whether the test passed (true) or failed (false).
+     *   - message: The error message if the test failed, or undefined if the test passed.
+     */
+    checkTestResult(result) {
+        if (result.includes('ERROR')) {
+            const errorMessage = result.split('\n').find(line => line.startsWith('ERROR'));
+            return { passed: false, message: errorMessage };
+        } else {
+            return { passed: true };
+        }
+    }
+
 
     /**
      * Creates a test item for a given file, test name, and line number.
@@ -110,6 +187,7 @@ class PrologTestController {
         const suiteName = match[1];
         const suiteId = `suite:${file.fsPath}:${suiteName}`;
         const suite = this.controller.createTestItem(suiteId, suiteName, file);
+        suite.description = suiteName; // Store the suite name in the description
         suite.canResolveChildren = true;
         this.controller.items.add(suite);
         return suite;
