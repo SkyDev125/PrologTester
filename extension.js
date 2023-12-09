@@ -16,10 +16,6 @@ class PrologTestController {
         this.controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, async (request, token) => {
             // TODO: Implement test execution here
         }, true);
-        this.reloadButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this.reloadButton.command = 'prologtester.reloadTests';
-        this.reloadButton.text = 'Reload Tests';
-        this.reloadButton.show();
     }
 
     /**
@@ -32,9 +28,7 @@ class PrologTestController {
      */
     createTest(file, testName, line) {
         const testId = `test:${file.fsPath}:${testName}`;
-        const path = require('path');
-        const fileName = path.basename(file.fsPath);
-        const testLabel = `Test at ${fileName}:${line}`;
+        const testLabel = `${testName}`;
         const testUri = file; // Use the file Uri here
         const test = this.controller.createTestItem(testId, testLabel, testUri);
         test.range = new vscode.Range(line, 0, line, 0);
@@ -144,13 +138,13 @@ class PrologTestController {
      */
     dispose() {
         this.controller.dispose();
-        this.reloadButton.dispose();
     }
 }
 
-
 /**
- * @param {vscode.ExtensionContext} context
+ * Activates the extension.
+ *
+ * @param {vscode.ExtensionContext} context - The extension context.
  */
 function activate(context) {
 
@@ -163,12 +157,16 @@ function activate(context) {
     context.subscriptions.push(prologTestController);
 
     /**
-     * Reloads the tests for Prolog Tester.
+     * Command to reload tests.
+     *
+     * @type {vscode.Disposable}
      */
-    let reloadCommand = vscode.commands.registerCommand('prologtester.reloadTests', function () {
-        prologTestController.resolveTests();
+    let reloadTestsDisposable = vscode.commands.registerCommand('prologtester.reloadTests', async function () {
+        // Trigger the test discovery process
+        await prologTestController.resolveTests();
     });
-    context.subscriptions.push(reloadCommand);
+
+    context.subscriptions.push(reloadTestsDisposable);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
