@@ -16,6 +16,10 @@ class PrologTestController {
         this.controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, async (request, token) => {
             // TODO: Implement test execution here
         }, true);
+        this.reloadButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.reloadButton.command = 'prologtester.reloadTests';
+        this.reloadButton.text = 'Reload Tests';
+        this.reloadButton.show();
     }
 
     /**
@@ -28,7 +32,9 @@ class PrologTestController {
      */
     createTest(file, testName, line) {
         const testId = `test:${file.fsPath}:${testName}`;
-        const testLabel = `Test at ${file.fsPath}:${line}`;
+        const path = require('path');
+        const fileName = path.basename(file.fsPath);
+        const testLabel = `Test at ${fileName}:${line}`;
         const testUri = file; // Use the file Uri here
         const test = this.controller.createTestItem(testId, testLabel, testUri);
         test.range = new vscode.Range(line, 0, line, 0);
@@ -37,10 +43,9 @@ class PrologTestController {
 
     /**
      * Resolves tests by iterating through all workspace folders and calling resolveTestsInWorkspaceFolder for each folder.
-     * @param {Function} run - The function to run the resolved tests.
      * @returns {Promise<void>} - A promise that resolves when all tests have been resolved.
      */
-    async resolveTests(run) {
+    async resolveTests() {
         try {
             const workspaceFolders = vscode.workspace.workspaceFolders;
             for (const workspaceFolder of workspaceFolders) {
@@ -139,6 +144,7 @@ class PrologTestController {
      */
     dispose() {
         this.controller.dispose();
+        this.reloadButton.dispose();
     }
 }
 
@@ -155,6 +161,14 @@ function activate(context) {
     // Create an instance of PrologTestController
     let prologTestController = new PrologTestController();
     context.subscriptions.push(prologTestController);
+
+    /**
+     * Reloads the tests for Prolog Tester.
+     */
+    let reloadCommand = vscode.commands.registerCommand('prologtester.reloadTests', function () {
+        prologTestController.resolveTests();
+    });
+    context.subscriptions.push(reloadCommand);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand

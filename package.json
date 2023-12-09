@@ -1,7 +1,7 @@
 {
   "name": "prologtester",
   "displayName": "PrologTester",
-  "description": "A VSCode Extension for running prolog Unit TtTestss",
+  "description": "A VSCode Extension for running prolog Unit Tests",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.85.0"
@@ -9,13 +9,18 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:prolog",
+    "workspaceContains:**/*.pl"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "prologtester.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "prologtester.reloadTests",
+        "title": "Reload Tests"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
