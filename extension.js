@@ -15,8 +15,16 @@ class PrologTestController {
         }, true);
     }
 
-    createTest(file, line) {
-        const testId = `test:${file.fsPath}:${line}`;
+    /**
+     * Creates a test item for a given file, test name, and line number.
+     * 
+     * @param {vscode.Uri} file - The file Uri.
+     * @param {string} testName - The name of the test.
+     * @param {number} line - The line number of the test.
+     * @returns {vscode.TestItem} The created test item.
+     */
+    createTest(file, testName, line) {
+        const testId = `test:${file.fsPath}:${testName}`;
         const testLabel = `Test at ${file.fsPath}:${line}`;
         const testUri = file; // Use the file Uri here
         const test = this.controller.createTestItem(testId, testLabel, testUri);
@@ -24,21 +32,38 @@ class PrologTestController {
         return test;
     }
 
+    /**
+     * Resolves the tests by searching for Prolog files in the workspace and creating test items for each test case.
+     * 
+     * @param {vscode.TestRun} run - The TestRun object to enqueue the test items.
+     * @returns {Promise<void>} - A promise that resolves when all the tests have been resolved.
+     */
     async resolveTests(run) {
-        const workspaceFolder = vscode.workspace.workspaceFolders[0];
-        const prologFiles = await vscode.workspace.findFiles('**/*.pl', '**/node_modules/**');
-        for (const file of prologFiles) {
-            const content = fs.readFileSync(file.fsPath, 'utf8');
-            const lines = content.split('\n');
-            let inTestBlock = false;
-            for (const line of lines) {
-                if (line.includes(':- begin_tests(')) {
-                    inTestBlock = true;
-                } else if (line.includes(':- end_tests(')) {
-                    inTestBlock = false;
-                } else if (inTestBlock && line.trim().startsWith('test(')) {
-                    const test = this.createTest(file, line);
-                    run.tests.push(test);
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        for (const workspaceFolder of workspaceFolders) {
+            const prologFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, '**/*.pl'), '**/node_modules/**');
+            for (const file of prologFiles) {
+                const content = await fs.promises.readFile(file.fsPath, 'utf8');
+                const lines = content.split('\n');
+                let inTestBlock = false;
+                let currentSuite = null;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.includes(':- begin_tests(')) {
+                        inTestBlock = true;
+                        const suiteName = line.match(/\(([^)]+)\)/)[1];
+                        const suiteId = `suite:${file.fsPath}:${suiteName}`;
+                        currentSuite = this.controller.createTestItem(suiteId, suiteName, file);
+                        currentSuite.canResolveChildren = true;
+                        this.controller.items.add(currentSuite);
+                    } else if (line.includes(':- end_tests(')) {
+                        inTestBlock = false;
+                        currentSuite = null;
+                    } else if (inTestBlock && line.trim().startsWith('test(')) {
+                        const testName = line.match(/\(([^)]+)\)/)[1];
+                        const test = this.createTest(file, testName, i);
+                        currentSuite.children.add(test);
+                    }
                 }
             }
         }
