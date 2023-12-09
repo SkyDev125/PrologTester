@@ -1,13 +1,17 @@
 {
   "name": "prologtester",
-  "displayName": "PrologTester",
+  "displayName": "Prolog Tester",
   "description": "A VSCode Extension for running prolog Unit Tests",
-  "version": "0.0.1",
+  "version": "0.5.0",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "author": {
+    "name": "Sky Dev",
+    "email": "diogo_goncalves2004@hotmail.com"
+  },
   "categories": [
-    "Other"
+    "Testing"
   ],
   "activationEvents": [
     "onLanguage:prolog",
@@ -35,5 +39,9 @@
     "typescript": "^5.3.2",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skydev125/prologtester.git"
   }
 }

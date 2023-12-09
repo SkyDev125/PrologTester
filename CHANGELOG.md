@@ -6,4 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- Initial release
+## [0.5.0] - 2023-12-09
+### Added
+- Unit Tests for prolog files.
+- Support for SWI-Prolog.
