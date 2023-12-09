@@ -152,6 +152,10 @@ function activate(context) {
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "prologtester" is now active!');
 
+    // Create an instance of PrologTestController
+    let prologTestController = new PrologTestController();
+    context.subscriptions.push(prologTestController);
+
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
