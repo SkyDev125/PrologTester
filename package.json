@@ -5,7 +5,8 @@
   "version": "0.5.0",
   "engines": {
     "vscode": "^1.85.0"
-  },
+  }, 
+  "publisher": "SkyDev",
   "author": {
     "name": "Sky Dev",
     "email": "diogo_goncalves2004@hotmail.com"
