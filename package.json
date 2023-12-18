@@ -2,7 +2,7 @@
   "name": "prologtester",
   "displayName": "Prolog Tester",
   "description": "A VSCode Extension for running prolog Unit Tests",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "engines": {
     "vscode": "^1.80.0"
   }, 
@@ -33,7 +33,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.80.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
     "eslint": "^8.54.0",
